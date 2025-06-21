@@ -33,12 +33,15 @@ extract_pokemon_data() {
     echo "Error: Failed to extract data from '$JSON_FILE'. Check $ERROR_LOG for details." >&2
     exit 1
   fi
+#   calc(){ awk "BEGIN { print "$*" }"; }
+  # Convert weight from hectograms to kilograms
+  formatted_weight=$(awk "BEGIN { print $weight / 10 }")
+  # Convert height from decimetres to metres
+  formatted_height=$(awk "BEGIN { print $height / 10 }")
+#   formatted_height=$(echo "scale=1; $height / 10" | bc)
+  
 
   # Print the extracted data
-  echo "“Pikachu is of type $type, weighs $($weight) kg, and is $height m tall."
-#   echo "Pikachu is type $type, with a height of $height decimetres and a weight of $weight hectograms."
-#   echo "Success! Data saved to $OUTPUT_FILE"
-}
+  echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
 # Main execution
 extract_pokemon_data "$1"
-# Usage: ./data_extraction_automation.sh
