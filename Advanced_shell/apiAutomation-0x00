@@ -1,0 +1,40 @@
+#!/bin/bash
+# Description: script that makes a request to the Pokémon API and retrieves data for a specific Pokémon Pikachu.
+# Usage: ./pokemon_api.sh
+# Requirements: curl, jq
+API_BASE_URL="https://pokeapi.co/api/v2/pokemon"
+DEFAULT_POKEMON="pikachu"
+OUTPUT_FILE="data.json"
+ERROR_LOG="errors.txt"
+
+cleanup() {
+  if [[ -f "$OUTPUT_FILE" && ! -s "$OUTPUT_FILE" ]]; then
+    rm -f "$OUTPUT_FILE"
+  fi
+}
+trap cleanup EXIT
+
+# Make a request to the Pokémon API for Pikachu
+# and save the response to a file.
+# If the request fails, log the error to a file.
+# Ensure required tools are installed
+if ! command -v curl &> /dev/null || ! command -v jq &> /dev/null; then
+  echo "Error: curl and jq are required but not installed." >&2
+  exit 1
+fi
+# Function to fetch Pokémon data
+fetch_pokemon() {
+  local pokemon="${1:-$DEFAULT_POKEMON}"
+  local api_url="$API_BASE_URL/$pokemon"
+
+  if ! curl -sSf "$api_url" -o "$OUTPUT_FILE" 2>> "$ERROR_LOG"; then
+    echo "Error: Failed to fetch data for '$pokemon'. Check $ERROR_LOG for details." >&2
+    exit 1
+  fi
+
+  echo "Success! Data saved to $OUTPUT_FILE"
+#   jq '.' "$OUTPUT_FILE"  # Pretty-print JSON (optional)
+}
+
+# Main execution
+fetch_pokemon "$1"
