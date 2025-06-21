@@ -1,0 +1,44 @@
+#!/bin/bash
+# Description: script that extracts the Pokémon’s name, height, weight, and type from the JSON file.
+# Usage: ./data_extraction_automation.sh
+
+JSON_FILE="data.json"
+ERROR_LOG="errors.txt"
+
+cleanup() {
+  if [[ -f "$OUTPUT_FILE" && ! -s "$OUTPUT_FILE" ]]; then
+    rm -f "$OUTPUT_FILE"
+  fi
+}
+trap cleanup EXIT
+# Function to extract Pokémon data
+extract_pokemon_data() {
+  if [[ ! -f "$JSON_FILE" ]]; then
+    echo "Error: JSON file '$JSON_FILE' does not exist." >&2
+    exit 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    echo "Error: jq is not installed. Please install it to run this script." >&2
+    exit 1
+  fi
+
+  # Extract data using jq
+  local name=$(jq -r '.name' "$JSON_FILE")
+  local height=$(jq -r '.height' "$JSON_FILE")
+  local weight=$(jq -r '.weight' "$JSON_FILE")
+  local type=$(jq -r '.types[0].type.name' "$JSON_FILE")
+
+  if [[ -z "$name" || -z "$height" || -z "$weight" || -z "$type" ]]; then
+    echo "Error: Failed to extract data from '$JSON_FILE'. Check $ERROR_LOG for details." >&2
+    exit 1
+  fi
+
+  # Print the extracted data
+  echo "“Pikachu is of type $type, weighs $($weight) kg, and is $height m tall."
+#   echo "Pikachu is type $type, with a height of $height decimetres and a weight of $weight hectograms."
+#   echo "Success! Data saved to $OUTPUT_FILE"
+}
+# Main execution
+extract_pokemon_data "$1"
+# Usage: ./data_extraction_automation.sh
