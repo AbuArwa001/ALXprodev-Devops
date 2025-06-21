@@ -39,9 +39,9 @@ extract_pokemon_data() {
   # Convert height from decimetres to metres
   formatted_height=$(awk "BEGIN { print $height / 10 }")
 #   formatted_height=$(echo "scale=1; $height / 10" | bc)
-  
-
-  # Print the extracted data
+  name=$(echo "$name" | sed 's/^./\U&/')
   echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+
+}
 # Main execution
 extract_pokemon_data "$1"
