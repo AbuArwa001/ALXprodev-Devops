@@ -17,9 +17,8 @@ trap cleanup EXIT
 # Make a request to the Pokémon API for Pikachu
 # and save the response to a file.
 # If the request fails, log the error to a file.
-# Ensure required tools are installed
-if ! command -v curl &> /dev/null || ! command -v jq &> /dev/null; then
-  echo "Error: curl and jq are required but not installed." >&2
+if ! command -v curl &> /dev/null; then
+  echo "Error: curl is not installed. Please install it to run this script." >&2
   exit 1
 fi
 # Function to fetch Pokémon data
