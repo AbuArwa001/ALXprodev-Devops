@@ -1,5 +1,5 @@
 #!/bin/bash
-# Description: Script that fetches Pokémon data in parallel using jobs command
+# Description: Script that fetches Pokémon data in parallel with proper process management
 # If an API request fails, implements a retry mechanism (up to 3 times)
 # Usage: ./parallel_pokemon_fetcher.sh
 # Requirements: curl, jq
@@ -28,12 +28,13 @@ trap cleanup EXIT
 # Function to check network connection
 check_network_connection() {
     echo "Checking network connection..."
+    # Check if we can reach the API base URL
+    echo "Testing connection to $API_BASE_URL..."
     if ! curl -s --head "$API_BASE_URL" | grep "200" > /dev/null; then
         echo "Error: Unable to connect to the Pokémon API. Please check your network connection." >&2
         exit 1
     fi
 }
-
 check_valid_pokemon_name() {
     local pokemon="$1"
     if ! curl -sSf "$API_BASE_URL/$pokemon" > /dev/null; then
@@ -48,7 +49,7 @@ fetch_pokemon_data() {
     local output_file="$OUTPUT_DIR/$(echo "$pokemon" | sed 's/^./\U&/').json"
     local retry_count=0
     local success=0
-    
+    echo "Fetching data for '$pokemon'..."
     while [[ $retry_count -lt $MAX_RETRIES ]]; do
         if curl -sSf "$API_BASE_URL/$pokemon" -o "$output_file"; then
             success=1
@@ -62,38 +63,54 @@ fetch_pokemon_data() {
     done
 
     if [[ $success -eq 1 ]]; then
-        echo "Successfully fetched data for $pokemon"
+        echo "Saved data to $output_file"
+        # echo "Successfully fetched data for $pokemon"
     else
         echo "Failed to fetch data for $pokemon after $MAX_RETRIES attempts" >> "$ERROR_LOG"
         rm -f "$output_file"  # Remove failed output file
     fi
 }
 
-# Main function to manage parallel fetching using jobs
+# Main function to manage parallel fetching
+# Main function to manage parallel fetching
 fetch_pokemon_in_parallel() {
     local pokemon_list=("$@")
+    local pids=()
+    local running_processes=0
     
     # Check network connection before starting
-    check_network_connection
+    if ! check_network_connection; then
+        exit 1
+    fi
     
     echo "Starting parallel fetch for ${#pokemon_list[@]} Pokémon..."
     
     for pokemon in "${pokemon_list[@]}"; do
         # Wait if we've reached max parallel processes
-        while (( $(jobs -r | wc -l) >= MAX_PARALLEL_PROCESSES )); do
-            sleep 1
+        while [[ $running_processes -ge $MAX_PARALLEL_PROCESSES ]]; do
+            # Check for completed processes
+            for pid in "${!pids[@]}"; do
+                if ! kill -0 "${pids[$pid]}" 2>/dev/null; then
+                    # Process has finished
+                    unset "pids[$pid]"
+                    running_processes=$((running_processes - 1))
+                fi
+            done
+            sleep 1  # Wait before checking again
         done
         
         # Start a new background process
         fetch_pokemon_data "$pokemon" &
-        echo "Started process for $pokemon"
+        pids["$!"]=1
+        running_processes=$((running_processes + 1))
+        echo "Started process for $pokemon (PID: $!)"
     done
     
     # Wait for all remaining processes to complete
+    # echo "Waiting for all processes to complete..."
     wait
     echo "All processes completed"
 }
-
 # Main execution
 fetch_pokemon_in_parallel "${DEFAULT_POKEMON_LIST[@]}"
 
