@@ -1,2 +1,7 @@
 curl: (22) The requested URL returned error: 400
 curl: (22) The requested URL returned error: 400
+curl: (23) Failure writing output to destination
+curl: (23) Failure writing output to destination
+curl: (23) Failure writing output to destination
+curl: (23) Failure writing output to destination
+curl: (23) Failure writing output to destination

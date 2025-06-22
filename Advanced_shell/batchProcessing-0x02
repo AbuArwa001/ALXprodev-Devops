@@ -1,0 +1,72 @@
+#!/bin/bash
+# Description: script that loops through a list of Pokémon [Bulbasaur, Ivysaur, Venusaur, Charmander, Charmeleon]
+# Usage: ./batch_processing.sh
+# Requirements: curl, jq
+API_BASE_URL="https://pokeapi.co/api/v2/pokemon/"
+DEFAULT_POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+# Output file to store the JSON data
+
+OUTPUT_FILE="pokemon_data"
+ERROR_LOG="errors.txt"
+cleanup() {
+  if [[ -f "$OUTPUT_FILE" && ! -s "$OUTPUT_FILE" ]]; then
+    rm -f "$OUTPUT_FILE"
+  fi
+}
+trap cleanup EXIT
+# Function to fetch Pokémon data
+# $(echo "$pokemon" | sed 's/^./\U&/')
+fetch_pokemon() {
+  local pokemon_list=("$@")
+  for pokemon in "${pokemon_list[@]}"; do
+    local api_url="$API_BASE_URL/$pokemon"
+    echo "Fetching data for '$pokemon'..."
+    if ! curl -sSf "$api_url" -o "${OUTPUT_FILE}/$(echo "$pokemon" | sed 's/^./\U&/').json" 2>> "$ERROR_LOG"; then
+      echo "Error: Failed to fetch data for '$pokemon'. Check $ERROR_LOG for details." >&2
+      continue
+    fi
+    echo "Saved data to ${OUTPUT_FILE}/$(echo "$pokemon" | sed 's/^./\U&/').json "
+    delay=$((RANDOM % 3 + 1)) # Random delay between 1 and 3 seconds
+    # echo "Waiting for $delay seconds before the next request..."
+    sleep "$delay"
+    # extract_pokemon_data "${OUTPUT_FILE}/$(echo "$pokemon" | sed 's/^./\U&/').json"
+  done
+}
+# # Function to extract Pokémon data
+# extract_pokemon_data() {
+#   local json_file="$1"
+#   if [[ ! -f "$json_file" ]]; then
+#     echo "Error: JSON file '$json_file' does not exist." >&2
+#     return 1
+#   fi
+
+#   if ! command -v jq &> /dev/null; then
+#     echo "Error: jq is not installed. Please install it to run this script." >&2
+#     return 1
+#   fi
+
+#   # Extract data using jq
+#   local name=$(jq -r '.name' "$json_file")
+#   local height=$(jq -r '.height' "$json_file")
+#   local weight=$(jq -r '.weight' "$json_file")
+#   local type=$(jq -r '.types[0].type.name' "$json_file")
+
+#   if [[ -z "$name" || -z "$height" || -z "$weight" || -z "$type" ]]; then
+#     echo "Error: Failed to extract data from '$json_file'. Check $ERROR_LOG for details." >&2
+#     return 1
+#   fi
+
+#   # Convert weight from hectograms to kilograms
+#   formatted_weight=$(awk "BEGIN { print $weight / 10 }")
+#   # Convert height from decimetres to metres
+#   formatted_height=$(awk "BEGIN { print $height / 10 }")
+  
+#   name=$(echo "$name" | sed 's/^./\U&/')
+#   echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+# }
+# Main execution
+fetch_pokemon "${DEFAULT_POKEMON_LIST[@]}"
+# Cleanup
+cleanup
+# Exit with success status
+exit 0
