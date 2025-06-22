@@ -72,6 +72,8 @@ fetch_pokemon_data() {
 # Main function to manage parallel fetching using jobs
 fetch_pokemon_in_parallel() {
     local pokemon_list=("$@")
+    local pids=()
+    local running_processes=0
     
     # Check network connection before starting
     check_network_connection
@@ -81,11 +83,22 @@ fetch_pokemon_in_parallel() {
     for pokemon in "${pokemon_list[@]}"; do
         # Wait if we've reached max parallel processes
         while (( $(jobs -r | wc -l) >= MAX_PARALLEL_PROCESSES )); do
+            # Check for completed processes
+            for pid in "${pids[@]}"; do
+                if ! kill -0 "$pid" 2>/dev/null; then
+                    echo "Process $pid completed"
+                    pids=("${pids[@]/$pid}")  # Remove completed PID
+                    ((running_processes--))
+                fi
+            done
             sleep 1
         done
         
         # Start a new background process
         fetch_pokemon_data "$pokemon" &
+        pids+=($!)  # Store the PID of the background job
+        ((running_processes++))
+        check_valid_pokemon_name "$pokemon"  # Validate Pokémon name before fetching
         echo "Started process for $pokemon"
     done
     
